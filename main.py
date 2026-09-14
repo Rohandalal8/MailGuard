@@ -1,27 +1,192 @@
-import pandas as pd;
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.ensemble import RandomForestClassifier
+from models.spam_detector import detect_spam
+from models.scam_detector import detect_scam
 
-dataset = pd.read_csv('data.csv')
 
-x = dataset["input"]
-y = dataset["output"]
+# ==========================================
+# Header
+# ==========================================
 
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+print("\n" + "=" * 55)
+print("                 🛡️  MAILGUARD")
+print("           Email Security Analyzer")
+print("=" * 55)
 
-vectorizer = TfidfVectorizer()
 
-conversion = vectorizer.fit_transform(x_train)
+# ==========================================
+# Get Email
+# ==========================================
 
-# brain
-model = RandomForestClassifier()
+email = input("\n📧 Enter email:\n> ")
 
-# model training
-model.fit(conversion, y_train)
 
-# prediction
-new_data = ["Free gift waiting. This offer expires soon, so take action now. No reply is needed, act now!"]
-x_test_transformed = vectorizer.transform(new_data)
-prediction = model.predict(x_test_transformed)
-print("Prediction:", prediction[0])
+# ==========================================
+# Run Detection
+# ==========================================
+
+spam_result = detect_spam(email)
+
+scam_result = detect_scam(email)
+
+
+# ==========================================
+# Results
+# ==========================================
+
+print("\n" + "-" * 55)
+print("                    RESULTS")
+print("-" * 55)
+
+
+# ------------------------------------------
+# Spam
+# ------------------------------------------
+
+print("\n📩 SPAM DETECTION")
+
+
+if spam_result["result"] == "Spam":
+
+    print("   Status     : 🚨 SPAM")
+
+else:
+
+    print("   Status     : ✅ NORMAL")
+
+
+print(
+    f"   Confidence : "
+    f"{spam_result['confidence']:.2f}%"
+)
+
+
+# ------------------------------------------
+# Scam
+# ------------------------------------------
+
+print("\n🔐 SCAM / PHISHING DETECTION")
+
+
+if scam_result["result"] == "Scam / Phishing":
+
+    print(
+        "   Status     : 🚨 SCAM / PHISHING"
+    )
+
+elif scam_result["result"] == "Suspicious":
+
+    print(
+        "   Status     : ⚠️  SUSPICIOUS"
+    )
+
+else:
+
+    print(
+        "   Status     : ✅ SAFE"
+    )
+
+
+print(
+    f"   Confidence : "
+    f"{scam_result['confidence']:.2f}%"
+)
+
+
+# ------------------------------------------
+# Text Analysis
+# ------------------------------------------
+
+print("\n🔎 TEXT ANALYSIS")
+
+print(
+    f"   Text Score : "
+    f"{scam_result['text_score']}%"
+)
+
+
+if scam_result["matched_keywords"]:
+
+    print(
+        "   Indicators : "
+        + ", ".join(
+            scam_result["matched_keywords"]
+        )
+    )
+
+else:
+
+    print(
+        "   Indicators : None"
+    )
+
+
+# ------------------------------------------
+# URL Analysis
+# ------------------------------------------
+
+print("\n🌐 URL ANALYSIS")
+
+
+if scam_result["urls"]:
+
+    for url_data in scam_result["urls"]:
+
+        print(
+            f"   URL        : "
+            f"{url_data['url']}"
+        )
+
+        print(
+            f"   Risk Score : "
+            f"{url_data['score']:.2f}%"
+        )
+
+else:
+
+    print("   No URLs detected.")
+
+
+# ==========================================
+# Final Verdict
+# ==========================================
+
+print("\n" + "-" * 55)
+print("                  FINAL VERDICT")
+print("-" * 55)
+
+
+if (
+    spam_result["result"] == "Spam"
+    and
+    scam_result["result"] == "Scam / Phishing"
+):
+
+    print(
+        "🚨  DANGER: SPAM + SCAM / PHISHING EMAIL"
+    )
+
+elif scam_result["result"] == "Scam / Phishing":
+
+    print(
+        "🚨  DANGER: SCAM / PHISHING EMAIL"
+    )
+
+elif spam_result["result"] == "Spam":
+
+    print(
+        "⚠️   WARNING: SPAM EMAIL"
+    )
+
+elif scam_result["result"] == "Suspicious":
+
+    print(
+        "⚠️   WARNING: SUSPICIOUS EMAIL"
+    )
+
+else:
+
+    print(
+        "✅  This email appears to be safe."
+    )
+
+
+print("\n" + "=" * 55)
