@@ -1,5 +1,6 @@
 import re
 import joblib
+from pathlib import Path
 from urllib.parse import urlparse
 
 
@@ -7,13 +8,11 @@ from urllib.parse import urlparse
 # Load trained URL model
 # ==========================================
 
-url_vectorizer = joblib.load(
-    "trained_models/url_vectorizer.pkl"
-)
+MODEL_DIR = Path(__file__).resolve().parent.parent / "trained_models"
 
-url_model = joblib.load(
-    "trained_models/url_model.pkl"
-)
+url_vectorizer = joblib.load(MODEL_DIR / "url_vectorizer.pkl")
+
+url_model = joblib.load(MODEL_DIR / "url_model.pkl")
 
 
 # ==========================================

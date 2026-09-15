@@ -1,0 +1,1 @@
+export type DashboardStats = { total: number; INBOX: number; SPAM: number; SCAM: number; gmailConnected: boolean; gmailEmail: string | null; recentEmails: Array<{ id: string; sender: string; subject: string; category: "INBOX" | "SPAM" | "SCAM"; receivedAt: string; bodyPreview: string }> };

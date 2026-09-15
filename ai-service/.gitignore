@@ -10,3 +10,7 @@ __pycache__/
 
 # Model files (optional)
 *.pkl
+
+# Python environments and generated output
+.venv/
+dist/

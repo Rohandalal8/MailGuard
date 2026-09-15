@@ -1,0 +1,22 @@
+import "dotenv/config";
+import cors from "cors";
+import express from "express";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import authRoutes from "./routes/auth.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
+import emailRoutes from "./routes/email.routes";
+import gmailRoutes from "./routes/gmail.routes";
+import { errorHandler } from "./middleware/error.middleware";
+
+export const app = express();
+app.use(helmet());
+app.use(cors({ origin: process.env.FRONTEND_URL ?? "http://localhost:3000" }));
+app.use(express.json({ limit: "1mb" }));
+app.use(rateLimit({ windowMs: 60_000, limit: 100 }));
+app.get("/health", (_request, response) => response.json({ success: true, data: { status: "ok" } }));
+app.use("/api/auth", authRoutes);
+app.use("/api/gmail", gmailRoutes);
+app.use("/api/emails", emailRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use(errorHandler);

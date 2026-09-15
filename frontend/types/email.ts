@@ -1,0 +1,4 @@
+export type Category = "INBOX" | "SPAM" | "SCAM";
+export type Email = { id: string; sender: string; senderEmail?: string; receiver?: string | null; subject: string; body?: string; bodyPreview: string; receivedAt: string; category: Category; isRead?: boolean; analysis?: EmailAnalysis | null };
+export type EmailAnalysis = { spamResult: string; spamConfidence: number; scamResult: string; scamConfidence: number; textScore: number; urlScore: number; matchedKeywords: Array<{ keyword: string }>; detectedUrls: Array<{ url: string; riskScore: number }> };
+export type PaginatedEmails = { emails: Email[]; page: number; limit: number; total: number; totalPages: number };

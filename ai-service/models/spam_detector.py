@@ -1,17 +1,16 @@
 import joblib
+from pathlib import Path
 
 
 # ==========================================
 # Load trained Spam model
 # ==========================================
 
-vectorizer = joblib.load(
-    "trained_models/spam_vectorizer.pkl"
-)
+MODEL_DIR = Path(__file__).resolve().parent.parent / "trained_models"
 
-model = joblib.load(
-    "trained_models/spam_model.pkl"
-)
+vectorizer = joblib.load(MODEL_DIR / "spam_vectorizer.pkl")
+
+model = joblib.load(MODEL_DIR / "spam_model.pkl")
 
 
 # ==========================================

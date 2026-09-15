@@ -4,10 +4,96 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum EmailCategory {
+  INBOX
+  SPAM
+  SCAM
+}
+
+model User {
+  id           String         @id @default(cuid())
+  firebaseUid  String         @unique
+  email        String         @unique
+  name         String?
+  photoUrl     String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  gmailAccounts GmailAccount[]
+  emails       Email[]
+}
+
+model GmailAccount {
+  id              String   @id @default(cuid())
+  userId          String
+  gmailEmail      String
+  googleAccountId String?
+  accessToken     String?
+  refreshToken    String
+  tokenExpiry     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emails          Email[]
+  @@unique([userId, gmailEmail])
+}
+
+model Email {
+  id              String         @id @default(cuid())
+  userId          String
+  gmailAccountId  String
+  gmailMessageId  String
+  gmailThreadId   String?
+  sender          String
+  senderEmail     String
+  receiver        String?
+  subject         String
+  body            String
+  bodyPreview     String
+  receivedAt      DateTime
+  category        EmailCategory
+  isRead          Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gmailAccount    GmailAccount   @relation(fields: [gmailAccountId], references: [id], onDelete: Cascade)
+  analysis        EmailAnalysis?
+  @@unique([userId, gmailMessageId])
+  @@index([userId, category, receivedAt])
+}
+
+model EmailAnalysis {
+  id              String          @id @default(cuid())
+  emailId         String          @unique
+  spamResult      String
+  spamConfidence  Float
+  scamResult      String
+  scamConfidence  Float
+  textScore       Float
+  urlScore        Float
+  analyzedAt      DateTime        @default(now())
+  email           Email           @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  matchedKeywords MatchedKeyword[]
+  detectedUrls    DetectedUrl[]
+}
+
+model MatchedKeyword {
+  id         String        @id @default(cuid())
+  analysisId String
+  keyword    String
+  analysis   EmailAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+}
+
+model DetectedUrl {
+  id         String        @id @default(cuid())
+  analysisId String
+  url        String
+  riskScore  Float
+  analysis   EmailAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
 }
