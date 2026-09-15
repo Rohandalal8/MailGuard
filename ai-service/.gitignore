@@ -1,0 +1,12 @@
+# AI datasets
+data/*.csv
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Model files (optional)
+*.pkl
