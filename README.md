@@ -38,7 +38,14 @@ cd ..\ai-service
 python -m pip install -r requirements.txt
 ```
 
-The existing model files must be present in `ai-service/trained_models/`. They are intentionally ignored by Git when using `*.pkl`.
+Train the AI models from the Kaggle spam/ham/phishing dataset:
+
+```powershell
+cd ai-service
+.venv\Scripts\python.exe train.py
+```
+
+The training script downloads `akshatsharma2/the-biggest-spam-ham-phish-email-dataset-300000` through KaggleHub. Its labels are mapped as `0=ham`, `1=spam`, and `2=phishing`; the generated model files are saved in `ai-service/trained_models/` and are intentionally ignored by Git.
 
 ## Run
 
@@ -68,6 +75,8 @@ npm run dev
 ```
 
 Open `http://localhost:3000`. Sign in with Firebase first, then use **Connect Gmail**. Gmail refresh tokens remain server-side. Sync processes at most the latest 50 messages and skips stored Gmail message IDs.
+
+The backend automatically checks all connected Gmail accounts when it starts and every five minutes. Set `GMAIL_SYNC_INTERVAL_MS` in `backend/.env` to customize the interval.
 
 ## API
 

@@ -40,7 +40,7 @@ def detect_spam(email):
 
 
     # Result
-    if prediction == "spam":
+    if int(prediction) == 1:
         result = "Spam"
     else:
         result = "Normal"

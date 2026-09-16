@@ -1,157 +1,87 @@
-import os
-import pandas as pd
+from pathlib import Path
 import joblib
-
+import kagglehub
+import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split
+
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_DIR = BASE_DIR / "trained_models"
+DATASET = "akshatsharma2/the-biggest-spam-ham-phish-email-dataset-300000"
+LABEL_SPAM = 1
+LABEL_PHISHING = 2
 
 
-# ==========================================
-# Create trained_models folder
-# ==========================================
-
-os.makedirs("trained_models", exist_ok=True)
-
-
-# ==========================================
-# SPAM MODEL
-# ==========================================
-
-print("\nTraining Spam Detection Model...")
-
-
-spam_df = pd.read_csv("data/spam_dataset.csv")
-
-spam_df = spam_df.dropna(
-    subset=["input", "output"]
-)
-
-spam_df["input"] = spam_df["input"].astype(str)
-
-spam_df["output"] = (
-    spam_df["output"]
-    .astype(str)
-    .str.lower()
-    .str.strip()
-)
+def load_dataset() -> pd.DataFrame:
+    dataset_dir = Path(kagglehub.dataset_download(DATASET))
+    csv_files = sorted(dataset_dir.rglob("*.csv"))
+    if not csv_files:
+        raise FileNotFoundError(f"No CSV file found in {dataset_dir}")
+    dataset = pd.read_csv(csv_files[0], usecols=["label", "text"])
+    dataset = dataset.dropna(subset=["label", "text"]).copy()
+    dataset["label"] = pd.to_numeric(dataset["label"], errors="coerce")
+    dataset = dataset.dropna(subset=["label"])
+    dataset["label"] = dataset["label"].astype(int)
+    dataset["text"] = dataset["text"].astype(str).str.slice(0, 20000)
+    dataset = dataset[dataset["label"].isin([0, LABEL_SPAM, LABEL_PHISHING])]
+    if dataset.empty:
+        raise ValueError("Expected labels 0=ham, 1=spam, 2=phishing")
+    return dataset
 
 
-# TF-IDF
-spam_vectorizer = TfidfVectorizer(
-    lowercase=True,
-    stop_words="english",
-    ngram_range=(1, 2)
-)
+def train_binary_model(texts: pd.Series, labels: pd.Series, name: str) -> None:
+    train_texts, test_texts, train_labels, test_labels = train_test_split(
+        texts, labels, test_size=0.2, random_state=42, stratify=labels
+    )
+    vectorizer = TfidfVectorizer(
+        lowercase=True,
+        stop_words="english",
+        ngram_range=(1, 2),
+        min_df=2,
+        max_features=200000,
+        sublinear_tf=True,
+    )
+    train_features = vectorizer.fit_transform(train_texts)
+    test_features = vectorizer.transform(test_texts)
+    model = LogisticRegression(max_iter=1000, class_weight="balanced", solver="lbfgs")
+    model.fit(train_features, train_labels)
+    print(f"\n{name} validation report:")
+    print(classification_report(test_labels, model.predict(test_features), zero_division=0))
+    joblib.dump(vectorizer, MODEL_DIR / f"{name}_vectorizer.pkl")
+    joblib.dump(model, MODEL_DIR / f"{name}_model.pkl")
 
 
-X_spam = spam_vectorizer.fit_transform(
-    spam_df["input"]
-)
+def train_category_model(dataset: pd.DataFrame) -> None:
+    train_texts, test_texts, train_labels, test_labels = train_test_split(
+        dataset["text"], dataset["label"], test_size=0.2, random_state=42, stratify=dataset["label"]
+    )
+    vectorizer = TfidfVectorizer(
+        lowercase=True, stop_words="english", ngram_range=(1, 2), min_df=2,
+        max_features=200000, sublinear_tf=True,
+    )
+    train_features = vectorizer.fit_transform(train_texts)
+    test_features = vectorizer.transform(test_texts)
+    model = LogisticRegression(max_iter=1000, class_weight="balanced", solver="lbfgs")
+    model.fit(train_features, train_labels)
+    print("\ncategory validation report:")
+    print(classification_report(test_labels, model.predict(test_features), zero_division=0))
+    joblib.dump(vectorizer, MODEL_DIR / "category_vectorizer.pkl")
+    joblib.dump(model, MODEL_DIR / "category_model.pkl")
 
 
-# Logistic Regression
-spam_model = LogisticRegression(
-    max_iter=1000
-)
+def main() -> None:
+    MODEL_DIR.mkdir(exist_ok=True)
+    dataset = load_dataset()
+    print(f"Rows: {len(dataset)}\nLabels:\n{dataset['label'].value_counts().sort_index()}")
+    spam_dataset = dataset[dataset["label"] != LABEL_PHISHING]
+    train_binary_model(spam_dataset["text"], (spam_dataset["label"] == LABEL_SPAM).astype(int), "spam")
+    phishing_labels = (dataset["label"] == LABEL_PHISHING).astype(int)
+    train_binary_model(dataset["text"], phishing_labels, "scam")
+    train_category_model(dataset)
+    print("\nModels saved to trained_models/")
 
 
-spam_model.fit(
-    X_spam,
-    spam_df["output"]
-)
-
-
-# Save spam model
-joblib.dump(
-    spam_vectorizer,
-    "trained_models/spam_vectorizer.pkl"
-)
-
-joblib.dump(
-    spam_model,
-    "trained_models/spam_model.pkl"
-)
-
-
-print("✅ Spam model trained successfully!")
-
-
-# ==========================================
-# SCAM / PHISHING URL MODEL
-# ==========================================
-
-print("\nTraining Scam / Phishing URL Model...")
-
-
-scam_df = pd.read_csv(
-    "data/scam_dataset.csv"
-)
-
-
-scam_df = scam_df.dropna(
-    subset=["URL", "Label"]
-)
-
-
-scam_df["URL"] = scam_df["URL"].astype(str)
-
-scam_df["Label"] = (
-    scam_df["Label"]
-    .astype(str)
-    .str.lower()
-    .str.strip()
-)
-
-
-# Convert labels
-# bad  = 1
-# good = 0
-
-scam_df["target"] = scam_df["Label"].apply(
-    lambda x: 1 if x == "bad" else 0
-)
-
-
-# Character-level TF-IDF
-url_vectorizer = TfidfVectorizer(
-    analyzer="char",
-    ngram_range=(2, 5),
-    min_df=1
-)
-
-
-X_url = url_vectorizer.fit_transform(
-    scam_df["URL"]
-)
-
-
-# Logistic Regression
-url_model = LogisticRegression(
-    max_iter=1000
-)
-
-
-url_model.fit(
-    X_url,
-    scam_df["target"]
-)
-
-
-# Save URL model
-joblib.dump(
-    url_vectorizer,
-    "trained_models/url_vectorizer.pkl"
-)
-
-joblib.dump(
-    url_model,
-    "trained_models/url_model.pkl"
-)
-
-
-print("✅ Scam / Phishing URL model trained successfully!")
-
-
-print("\n" + "=" * 50)
-print("🎉 ALL MODELS TRAINED SUCCESSFULLY!")
-print("=" * 50)
+if __name__ == "__main__":
+    main()

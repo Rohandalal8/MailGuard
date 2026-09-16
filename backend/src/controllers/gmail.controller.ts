@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import { prisma } from "../config/database";
 import { createOAuthClient, gmailScopes } from "../config/gmail";
 import { AuthenticatedRequest } from "../middleware/auth.middleware";
-import { analyzeEmail, classifyEmail } from "../services/ai.service";
-import { getGmailMessages, gmailClient } from "../services/gmail.service";
+import { syncGmailAccount } from "../services/gmail-sync.service";
+import { gmailClient } from "../services/gmail.service";
 import { createOAuthState, verifyOAuthState } from "../utils/token";
 
 export function connectGmail(request: AuthenticatedRequest, response: Response): void {
@@ -24,7 +24,7 @@ export async function gmailCallback(request: Request, response: Response): Promi
     const gmail = gmailClient(tokens.access_token ?? "", tokens.refresh_token);
     const profile = await gmail.users.getProfile({ userId: "me" });
     await prisma.gmailAccount.upsert({ where: { userId_gmailEmail: { userId, gmailEmail: profile.data.emailAddress ?? "" } }, update: { accessToken: tokens.access_token ?? null, refreshToken: tokens.refresh_token, tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null, googleAccountId: profile.data.emailAddress ?? null }, create: { userId, gmailEmail: profile.data.emailAddress ?? "", googleAccountId: profile.data.emailAddress ?? null, accessToken: tokens.access_token ?? null, refreshToken: tokens.refresh_token, tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null } });
-    response.redirect(`${process.env.FRONTEND_URL ?? "http://localhost:3000"}/settings?gmail=connected`);
+    response.redirect(`${process.env.FRONTEND_URL ?? "http://localhost:3000"}/dashboard?gmail=connected`);
   } catch { response.status(502).send("Gmail authorization failed"); }
 }
 
@@ -34,47 +34,14 @@ export async function gmailStatus(request: AuthenticatedRequest, response: Respo
 }
 
 export async function syncGmail(request: AuthenticatedRequest, response: Response): Promise<void> {
-  const account = await prisma.gmailAccount.findFirst({ where: { userId: request.authUser!.userId } });
-  if (!account) { response.status(400).json({ success: false, message: "Connect Gmail first" }); return; }
-  const messages = await getGmailMessages(gmailClient(account.accessToken ?? "", account.refreshToken), 50);
-  let synced = 0; let alreadyProcessed = 0;
-  for (const message of messages) {
-    const exists = await prisma.email.findUnique({ where: { userId_gmailMessageId: { userId: request.authUser!.userId, gmailMessageId: message.id } }, select: { id: true } });
-    if (exists) { alreadyProcessed++; continue; }
-    const result = await analyzeEmail(message.subject, message.body);
-    const category = classifyEmail(result.spam.result, result.scam.result);
-    await prisma.email.create({
-      data: {
-        userId: request.authUser!.userId,
-        gmailAccountId: account.id,
-        gmailMessageId: message.id,
-        gmailThreadId: message.threadId,
-        sender: message.sender,
-        senderEmail: message.senderEmail,
-        receiver: message.receiver,
-        subject: message.subject || "(no subject)",
-        body: message.body,
-        bodyPreview: message.body.slice(0, 240),
-        receivedAt: message.receivedAt,
-        category,
-        isRead: message.isRead,
-        analysis: {
-          create: {
-            spamResult: result.spam.result,
-            spamConfidence: result.spam.confidence,
-            scamResult: result.scam.result,
-            scamConfidence: result.scam.confidence,
-            textScore: result.scam.text_score,
-            urlScore: result.scam.url_score,
-            matchedKeywords: { create: result.scam.matched_keywords.map((keyword) => ({ keyword })) },
-            detectedUrls: { create: result.scam.urls.map((url) => ({ url: url.url, riskScore: url.score })) },
-          },
-        },
-      },
-    });
-    synced++;
+  try {
+    const account = await prisma.gmailAccount.findFirst({ where: { userId: request.authUser!.userId } });
+    if (!account) { response.status(400).json({ success: false, message: "Connect Gmail first" }); return; }
+    response.json({ success: true, data: await syncGmailAccount(account.id) });
+  } catch (error) {
+    console.error("Gmail sync failed", error);
+    response.status(502).json({ success: false, message: "Gmail sync failed. Check Gmail authorization, database, and AI service." });
   }
-  response.json({ success: true, data: { synced, new: synced, alreadyProcessed } });
 }
 
 export async function disconnectGmail(request: AuthenticatedRequest, response: Response): Promise<void> {
