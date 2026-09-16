@@ -11,7 +11,7 @@ category_model = joblib.load(MODEL_DIR / "category_model.pkl")
 def detect_scam(email: str) -> dict:
     features = category_vectorizer.transform([email])
     probabilities = category_model.predict_proba(features)[0]
-    phishing_index = list(category_model.classes_).index(2)
+    phishing_index = list(category_model.classes_).index(1)
     final_score = float(probabilities[phishing_index] * 100)
     result = "Scam / Phishing" if final_score >= 70 else "Suspicious" if final_score >= 40 else "Safe"
     return {

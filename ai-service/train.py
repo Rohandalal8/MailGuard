@@ -10,8 +10,8 @@ from sklearn.model_selection import train_test_split
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = BASE_DIR / "trained_models"
 DATASET = "akshatsharma2/the-biggest-spam-ham-phish-email-dataset-300000"
-LABEL_SPAM = 1
-LABEL_PHISHING = 2
+LABEL_PHISHING = 1
+LABEL_SPAM = 2
 
 
 def load_dataset() -> pd.DataFrame:
@@ -27,7 +27,7 @@ def load_dataset() -> pd.DataFrame:
     dataset["text"] = dataset["text"].astype(str).str.slice(0, 20000)
     dataset = dataset[dataset["label"].isin([0, LABEL_SPAM, LABEL_PHISHING])]
     if dataset.empty:
-        raise ValueError("Expected labels 0=ham, 1=spam, 2=phishing")
+        raise ValueError("Expected labels 0=ham, 1=phishing, 2=spam")
     return dataset
 
 

@@ -45,7 +45,7 @@ cd ai-service
 .venv\Scripts\python.exe train.py
 ```
 
-The training script downloads `akshatsharma2/the-biggest-spam-ham-phish-email-dataset-300000` through KaggleHub. Its labels are mapped as `0=ham`, `1=spam`, and `2=phishing`; the generated model files are saved in `ai-service/trained_models/` and are intentionally ignored by Git.
+The training script downloads `akshatsharma2/the-biggest-spam-ham-phish-email-dataset-300000` through KaggleHub. Its labels are mapped as `0=ham`, `1=phishing`, and `2=spam`; the generated model files are saved in `ai-service/trained_models/` and are intentionally ignored by Git.
 
 ## Run
 
