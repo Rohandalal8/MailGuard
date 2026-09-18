@@ -3,7 +3,7 @@ import { app } from "./app";
 import { syncAllGmailAccounts } from "./services/gmail-sync.service";
 
 const port = Number(process.env.PORT ?? 5000);
-const intervalMs = Number(process.env.GMAIL_SYNC_INTERVAL_MS ?? 300000);
+const intervalMs = Number(process.env.GMAIL_SYNC_INTERVAL_MS ?? 10000);
 
 app.listen(port, () => {
 	console.log(`MailGuard backend listening on port ${port}`);
