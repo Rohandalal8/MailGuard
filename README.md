@@ -1,6 +1,6 @@
-# MailGuard AI
+# MailGuard
 
-MailGuard AI is a Gmail security workspace that uses the existing TF-IDF spam model and hybrid scam detector to classify permitted Gmail messages as `INBOX`, `SPAM`, or `SCAM`. Scam always wins when both detectors flag a message.
+MailGuard is a Gmail security workspace that uses the existing TF-IDF spam model and hybrid scam detector to classify permitted Gmail messages as `INBOX`, `SPAM`, or `SCAM`. Scam always wins when both detectors flag a message.
 
 ## Architecture
 

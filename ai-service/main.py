@@ -42,7 +42,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="MailGuard AI", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="MailGuard", version="1.0.0", lifespan=lifespan)
 
 
 @app.get("/health")

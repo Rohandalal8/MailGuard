@@ -1,8 +1,8 @@
 {
-  "name": "mailguard-ai",
+  "name": "mailguard",
   "version": "1.0.0",
   "private": true,
-  "description": "MailGuard AI full-stack workspace runner",
+  "description": "MailGuard full-stack workspace runner",
   "scripts": {
     "dev": "concurrently --kill-others-on-fail --names AI,BACKEND,FRONTEND --prefix-colors yellow,cyan,green \"npm run dev:ai\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:ai": "ai-service\\.venv\\Scripts\\python.exe -m uvicorn main:app --app-dir ai-service --reload --port 8000",
