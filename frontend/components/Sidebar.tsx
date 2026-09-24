@@ -16,6 +16,7 @@ export default function Sidebar({ stats }: { stats?: DashboardStats | null }) {
   return (
     <aside className="sidebar">
       <p className="brand">MAILGUARD</p>
+      <div className="dot"></div>
       <nav className="nav">
         {items.map((item) => (
           <Link
