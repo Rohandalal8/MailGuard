@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+import os
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from models.scam_detector import detect_scam
@@ -43,6 +45,11 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="MailGuard", version="1.0.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:3000")],
+    allow_methods=["GET"],
+)
 
 
 @app.get("/health")
