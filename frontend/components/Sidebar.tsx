@@ -9,22 +9,28 @@ export default function Sidebar({ stats }: { stats?: DashboardStats | null }) {
   const [serviceStatus, setServiceStatus] = useState<"down" | "partial" | "up">("down");
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
   const backendHealthUrl = `${apiUrl.replace(/\/api\/?$/, "")}/health`;
-  const aiHealthUrl = `${(process.env.NEXT_PUBLIC_AI_SERVICE_URL ?? "http://localhost:8000").replace(/\/$/, "")}/health`;
 
   useEffect(() => {
     let mounted = true;
 
     const checkServices = async () => {
-      const results = await Promise.allSettled([
-        fetch(backendHealthUrl, { cache: "no-store" }),
-        fetch(aiHealthUrl, { cache: "no-store" }),
-      ]);
-      const healthyServices = results.filter(
-        (result) => result.status === "fulfilled" && result.value.ok,
-      ).length;
+      let backendUp = false;
+      let aiUp = false;
+
+      try {
+        const response = await fetch(backendHealthUrl, { cache: "no-store" });
+        const health = await response.json() as {
+          data?: { services?: { backend?: string; ai?: string } };
+        };
+        backendUp = response.ok && health.data?.services?.backend === "ok";
+        aiUp = response.ok && health.data?.services?.ai === "ok";
+      } catch {
+        backendUp = false;
+        aiUp = false;
+      }
 
       if (mounted) {
-        setServiceStatus(healthyServices === 2 ? "up" : healthyServices === 1 ? "partial" : "down");
+        setServiceStatus(backendUp && aiUp ? "up" : backendUp || aiUp ? "partial" : "down");
       }
     };
 
@@ -35,7 +41,7 @@ export default function Sidebar({ stats }: { stats?: DashboardStats | null }) {
       mounted = false;
       window.clearInterval(interval);
     };
-  }, [aiHealthUrl, backendHealthUrl]);
+  }, [backendHealthUrl]);
 
   const items = [
     { href: "/dashboard", label: "Dashboard" },
