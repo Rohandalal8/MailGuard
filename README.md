@@ -76,7 +76,7 @@ npm run dev
 
 Open `http://localhost:3000`. Sign in with Firebase first, then use **Connect Gmail**. Gmail refresh tokens remain server-side. Sync processes at most the latest 50 messages and skips stored Gmail message IDs.
 
-Gmail syncing is manual only. The backend does not sync on startup or in the background. Sync runs only when the user clicks **Sync Gmail** or when `POST /api/gmail/sync` is called.
+The backend syncs connected Gmail accounts at the interval configured by `GMAIL_SYNC_INTERVAL_MS` (15 minutes by default). The first sync imports all available Gmail messages using pagination; later syncs query only messages newer than the latest stored message. Users can also trigger an immediate sync with **Sync Gmail** or `POST /api/gmail/sync`.
 
 ## API
 

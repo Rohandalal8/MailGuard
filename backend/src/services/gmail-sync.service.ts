@@ -19,7 +19,15 @@ export async function syncGmailAccount(accountId: string): Promise<GmailSyncResu
 	try {
 		const account = await prisma.gmailAccount.findUnique({ where: { id: accountId } });
 		if (!account) throw new Error("Gmail account not found");
-		const messages = await getGmailMessages(gmailClient(account.accessToken ?? "", account.refreshToken), 50);
+		const latestEmail = await prisma.email.findFirst({
+			where: { gmailAccountId: account.id },
+			orderBy: { receivedAt: "desc" },
+			select: { receivedAt: true },
+		});
+		const query = latestEmail
+			? `after:${Math.floor(latestEmail.receivedAt.getTime() / 1000)}`
+			: undefined;
+		const messages = await getGmailMessages(gmailClient(account.accessToken ?? "", account.refreshToken), 100, query);
 		let synced = 0;
 		let alreadyProcessed = 0;
 		let skipped = 0;
@@ -64,8 +72,21 @@ export async function syncGmailAccount(accountId: string): Promise<GmailSyncResu
 				console.error(`Skipping Gmail message ${message.id}`, error);
 			}
 		}
+
 		return { synced, new: synced, alreadyProcessed, skipped };
 	} finally {
 		activeAccounts.delete(accountId);
+	}
+}
+
+export async function syncAllGmailAccounts(): Promise<void> {
+	const accounts = await prisma.gmailAccount.findMany({ select: { id: true, gmailEmail: true } });
+	for (const account of accounts) {
+		try {
+			const result = await syncGmailAccount(account.id);
+			console.log(`Automatic Gmail sync ${account.gmailEmail}: ${result.new} new, ${result.skipped} skipped`);
+		} catch (error) {
+			console.error(`Automatic Gmail sync failed for ${account.gmailEmail}`, error);
+		}
 	}
 }
