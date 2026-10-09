@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
-const backendHealthUrl = `${apiUrl.replace(/\/api\/?$/, "")}/health`;
+const backendHealthUrl = "/api/health";
 
 export default function ServiceWarmup() {
 	useEffect(() => {
