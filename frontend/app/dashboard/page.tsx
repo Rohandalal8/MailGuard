@@ -54,7 +54,7 @@ export default function DashboardPage() {
                 ))}
             </div>
             <div className="section">
-                <GmailConnect onChange={() => void refresh()} hideWhenConnected />
+                <GmailConnect onChange={() => void refresh()} />
             </div>
             <section className="section">
                 <h2>Recent mail</h2>

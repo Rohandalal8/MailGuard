@@ -69,15 +69,3 @@ export async function syncGmailAccount(accountId: string): Promise<GmailSyncResu
 		activeAccounts.delete(accountId);
 	}
 }
-
-export async function syncAllGmailAccounts(): Promise<void> {
-	const accounts = await prisma.gmailAccount.findMany({ select: { id: true, gmailEmail: true } });
-	for (const account of accounts) {
-		try {
-			const result = await syncGmailAccount(account.id);
-			console.log(`Automatic Gmail sync ${account.gmailEmail}: ${result.new} new, ${result.skipped} skipped`);
-		} catch (error) {
-			console.error(`Automatic Gmail sync failed for ${account.gmailEmail}`, error);
-		}
-	}
-}
